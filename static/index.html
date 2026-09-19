@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TextPulse – Understand the emotion behind every word</title>
+  <meta name="description" content="TextPulse classifies text into six emotions using a deep-learning model built with TensorFlow/Keras.">
+  <meta name="theme-color" content="#080a12">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23080a12'/%3E%3Cpath d='M4 17h6l3-8 5 15 3-7h7' fill='none' stroke='%238aa0ff' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&amp;family=Instrument+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet">
+
+  <!--
+    Paths start with /static/ because the FastAPI backend mounts the "static"
+    folder at /static and serves static/index.html at "/".
+  -->
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="/static/script.js" defer></script>
+</head>
+<body>
+
+  <!-- Shared gradient (the six emotion colours) used by the logo and hero waveform -->
+  <svg class="defs-only" width="0" height="0" aria-hidden="true" focusable="false">
+    <defs>
+      <linearGradient id="pulseGradient" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" stop-color="#5b93f0"/>
+        <stop offset="0.2" stop-color="#a883f2"/>
+        <stop offset="0.4" stop-color="#ff7aa5"/>
+        <stop offset="0.6" stop-color="#ff5f52"/>
+        <stop offset="0.8" stop-color="#f6bd41"/>
+        <stop offset="1" stop-color="#35d6c2"/>
+      </linearGradient>
+    </defs>
+  </svg>
+
+  <div class="ambient" aria-hidden="true"></div>
+
+  <a class="skip-link" href="#analyzer">Skip to analyzer</a>
+
+  <!-- ============ Header ============ -->
+  <header class="site-header" id="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="#home" aria-label="TextPulse home">
+        <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true">
+          <path d="M3 17h6l3-9 5 17 3-8h9" fill="none" stroke="url(#pulseGradient)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span>TextPulse</span>
+      </a>
+
+      <nav class="site-nav" id="site-nav" aria-label="Primary">
+        <ul>
+          <li><a href="#home" data-nav>Home</a></li>
+          <li><a href="#how-it-works" data-nav>How it works</a></li>
+          <li><a href="#models" data-nav>Models</a></li>
+          <li><a href="#about" data-nav>About</a></li>
+        </ul>
+      </nav>
+
+      <div class="header-tools">
+        <!-- Reflects the real result of GET /health, updated by script.js -->
+        <span class="status" id="status" data-state="checking" role="status" title="Checking the backend">
+          <span class="status-dot" aria-hidden="true"></span>
+          <span class="status-text" id="status-text">Checking model</span>
+        </span>
+        <button class="nav-toggle" id="nav-toggle" type="button" aria-expanded="false" aria-controls="site-nav" aria-label="Open menu">
+          <span></span><span></span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- ============ Hero ============ -->
+    <section class="hero" id="home">
+      <div class="container hero-inner">
+        <h1 class="wordmark">TextPulse</h1>
+        <p class="hero-tagline">Understand the emotion behind every word.</p>
+        <p class="hero-copy">Paste a sentence and a deep-learning model reads it, then tells you which of six emotions it most likely expresses, and how sure it is.</p>
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="#analyzer">Analyze Text →</a>
+          <a class="btn btn-ghost" href="#how-it-works">See how it works</a>
+        </div>
+      </div>
+
+      <div class="hero-wave" aria-hidden="true">
+        <svg viewBox="0 0 1200 160" preserveAspectRatio="xMidYMid meet">
+          <path class="wave wave-glow" pathLength="1" d="M0 80 L170 80 L200 72 L225 92 L255 20 L290 140 L320 62 L340 80 L470 80 C500 80 500 55 540 55 S580 80 610 80 L720 80 L745 66 L770 100 L800 10 L840 150 L870 70 L890 80 L1010 80 C1040 80 1040 60 1080 60 S1120 80 1150 80 L1200 80" fill="none" stroke="url(#pulseGradient)"/>
+          <path class="wave wave-line" pathLength="1" d="M0 80 L170 80 L200 72 L225 92 L255 20 L290 140 L320 62 L340 80 L470 80 C500 80 500 55 540 55 S580 80 610 80 L720 80 L745 66 L770 100 L800 10 L840 150 L870 70 L890 80 L1010 80 C1040 80 1040 60 1080 60 S1120 80 1150 80 L1200 80" fill="none" stroke="url(#pulseGradient)"/>
+        </svg>
+      </div>
+    </section>
+
+    <!-- ============ Analyzer ============ -->
+    <section class="section analyzer" id="analyzer" aria-labelledby="analyzer-title">
+      <div class="container">
+        <div class="section-head">
+          <h2 id="analyzer-title">What does your text say?</h2>
+          <p>Write in English. TextPulse works best with a sentence or a short paragraph.</p>
+        </div>
+
+        <div class="analyzer-grid">
+
+          <!-- Input -->
+          <form class="card glass composer" id="analyzer-form" novalidate>
+            <label class="sr-only" for="text-input">Text to analyze</label>
+            <textarea id="text-input" name="text" rows="7" maxlength="2000" placeholder="I feel so happy and excited about my new job today." spellcheck="true"></textarea>
+
+            <div class="composer-meta">
+              <span class="char-count" id="char-count" aria-live="off">0 / 2000</span>
+              <button class="btn-text" id="clear-btn" type="button" disabled>Clear</button>
+            </div>
+
+            <div class="chips" role="group" aria-label="Example texts">
+              <button class="chip" type="button" data-example="I feel so happy and excited about my new job today.">I feel so happy and excited about my new job today.</button>
+              <button class="chip" type="button" data-example="I feel lonely and heartbroken since she left.">I feel lonely and heartbroken since she left.</button>
+              <button class="chip" type="button" data-example="I feel really affectionate and warm towards my best friend.">I feel really affectionate and warm towards my best friend.</button>
+              <button class="chip" type="button" data-example="I am furious that they lied to me again.">I am furious that they lied to me again.</button>
+              <button class="chip" type="button" data-example="I feel terrified and anxious about tomorrow's exam.">I feel terrified and anxious about tomorrow's exam.</button>
+              <button class="chip" type="button" data-example="I was shocked and amazed by the unexpected news.">I was shocked and amazed by the unexpected news.</button>
+            </div>
+
+            <div class="composer-actions">
+              <button class="btn btn-primary btn-analyze" id="analyze-btn" type="submit" disabled>
+                <span class="btn-label">Analyze Emotion</span>
+                <span class="btn-spinner" aria-hidden="true"></span>
+              </button>
+              <span class="shortcut-hint"><kbd>Ctrl</kbd> + <kbd>Enter</kbd></span>
+            </div>
+          </form>
+
+          <!-- Result -->
+          <section class="card glass result" id="result-panel" data-state="empty" aria-label="Analysis result">
+
+            <div class="result-view" data-view="empty">
+              <svg class="result-empty-icon" viewBox="0 0 64 32" aria-hidden="true">
+                <path d="M2 16h14l5-10 8 22 6-12h27" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <p class="result-empty-title">Your result will appear here</p>
+              <p class="result-empty-copy">Enter some text, or pick an example, then choose Analyze Emotion.</p>
+            </div>
+
+            <div class="result-view" data-view="loading" hidden>
+              <div class="loader" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+              <p class="result-empty-title">Reading your text…</p>
+              <p class="result-empty-copy">The model is scoring all six emotions.</p>
+            </div>
+
+            <div class="result-view" data-view="error" hidden>
+              <div class="error-icon" aria-hidden="true">!</div>
+              <p class="result-empty-title">Analysis didn't finish</p>
+              <p class="result-empty-copy" id="error-message"></p>
+              <button class="btn btn-ghost" id="retry-btn" type="button">Try again</button>
+            </div>
+
+            <div class="result-view result-success" data-view="success" hidden>
+              <div class="result-top">
+                <div class="ring" role="img" aria-label="Confidence">
+                  <svg viewBox="0 0 120 120" aria-hidden="true">
+                    <circle class="ring-track" cx="60" cy="60" r="52"/>
+                    <circle class="ring-value" id="ring-value" cx="60" cy="60" r="52"/>
+                  </svg>
+                  <div class="ring-center">
+                    <span class="ring-number"><span id="confidence-value">0.0</span><small>%</small></span>
+                    <span class="ring-caption">confidence</span>
+                  </div>
+                </div>
+
+                <div class="result-headline">
+                  <p class="result-label">Predicted emotion</p>
+                  <div class="result-name-row">
+                    <span class="result-emoji" id="emotion-emoji" aria-hidden="true"></span>
+                    <h3 id="emotion-name"></h3>
+                  </div>
+                </div>
+              </div>
+
+              <div class="distribution" id="distribution">
+                <h4>Emotion distribution</h4>
+                <ul class="dist-list" id="distribution-list"></ul>
+              </div>
+
+              <div class="result-notes">
+                <p class="result-note" id="cleaned-note" hidden>
+                  Text the model received after cleaning: <q id="cleaned-text"></q>
+                </p>
+                <p class="result-note" id="truncate-note" hidden>The model reads at most 50 tokens, so the end of a long text may have been ignored.</p>
+                <p class="result-note">Confidence is the model's own probability score. It shows how the model ranked the emotions, not a guarantee.</p>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ How it works ============ -->
+    <section class="section" id="how-it-works" aria-labelledby="how-title">
+      <div class="container">
+        <div class="section-head">
+          <h2 id="how-title">From your sentence to an emotion in four steps</h2>
+        </div>
+
+        <ol class="steps">
+          <li class="step card">
+            <span class="step-number">01</span>
+            <svg class="step-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7V5h16v2M9 19h6M12 5v14"/></svg>
+            <h3>Enter text</h3>
+            <p>Write or paste your text into the analyzer.</p>
+          </li>
+          <li class="step card">
+            <span class="step-number">02</span>
+            <svg class="step-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2"/><rect x="10" y="10" width="4" height="4"/><path d="M9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3"/></svg>
+            <h3>AI processing</h3>
+            <p>TextPulse preprocesses your text and analyzes it with the trained deep-learning model.</p>
+          </li>
+          <li class="step card">
+            <span class="step-number">03</span>
+            <svg class="step-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg>
+            <h3>Emotion detection</h3>
+            <p>The model identifies the most likely emotion out of six.</p>
+          </li>
+          <li class="step card">
+            <span class="step-number">04</span>
+            <svg class="step-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20v-8M12 20V5M19 20v-5"/></svg>
+            <h3>Understand</h3>
+            <p>View the prediction, the confidence, and how the other emotions scored.</p>
+          </li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- ============ Models ============ -->
+    <section class="section" id="models" aria-labelledby="models-title">
+      <div class="container">
+        <div class="section-head">
+          <h2 id="models-title">Powered by deep learning</h2>
+          <p>Four recurrent architectures were trained and evaluated under the same conditions for six-class emotion classification.</p>
+        </div>
+
+        <!-- To show real metrics, add an accuracy / F1 line inside each card using your measured values. -->
+        <div class="models-grid">
+          <article class="model card" data-model="rnn">
+            <h3>RNN</h3>
+            <p class="model-tag">Baseline</p>
+            <p>Reads text one token at a time and carries a hidden state forward. The simplest recurrent design.</p>
+          </article>
+          <article class="model card" data-model="lstm">
+            <h3>LSTM</h3>
+            <p class="model-tag">Gated memory</p>
+            <p>Adds gates and a memory cell so relevant context can survive across longer sentences.</p>
+          </article>
+          <article class="model card" data-model="gru">
+            <h3>GRU</h3>
+            <p class="model-tag">Lighter gating</p>
+            <p>Uses a simpler gating scheme than LSTM, with fewer parameters to train.</p>
+          </article>
+          <article class="model card is-deployed" data-model="bigru">
+            <span class="model-badge">Serving this app</span>
+            <h3>Bi-GRU</h3>
+            <p class="model-tag">Two-way context</p>
+            <p>Runs a GRU forwards and backwards, so each word is read with what comes before and after it.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ About ============ -->
+    <section class="section" id="about" aria-labelledby="about-title">
+      <div class="container about-grid">
+        <div class="about-copy">
+          <h2 id="about-title">About TextPulse</h2>
+          <p>TextPulse is an NLP-based emotion classification system built with TensorFlow/Keras. It processes natural language using tokenization, sequence padding, embeddings, and deep-learning architectures to classify text into six emotion categories.</p>
+
+          <ul class="emotion-legend" aria-label="The six emotion classes">
+            <li><span class="dot" style="--c: var(--sadness)"></span>Sadness</li>
+            <li><span class="dot" style="--c: var(--joy)"></span>Joy</li>
+            <li><span class="dot" style="--c: var(--love)"></span>Love</li>
+            <li><span class="dot" style="--c: var(--anger)"></span>Anger</li>
+            <li><span class="dot" style="--c: var(--fear)"></span>Fear</li>
+            <li><span class="dot" style="--c: var(--surprise)"></span>Surprise</li>
+          </ul>
+        </div>
+
+        <div class="card glass pipeline-card">
+          <h3>What happens to your text</h3>
+          <ol class="pipeline">
+            <li>
+              <strong>Clean</strong>
+              <span>Lowercase, remove apostrophes and punctuation.</span>
+              <div class="sample" aria-label="Cleaning example">
+                <p><span>Input</span><code>I can't believe it!!</code></p>
+                <p><span>Cleaned</span><code>i cant believe it</code></p>
+              </div>
+            </li>
+            <li><strong>Tokenize</strong><span>Words become integer IDs using the tokenizer saved from training.</span></li>
+            <li><strong>Pad to 50</strong><span>Every input becomes a fixed sequence of 50 tokens.</span></li>
+            <li><strong>Embed and classify</strong><span>The Bi-GRU model reads the sequence in both directions.</span></li>
+            <li><strong>Six probabilities</strong><span>One score per emotion. The highest wins.</span></li>
+          </ol>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ============ Footer ============ -->
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <div>
+        <p class="footer-brand">TextPulse</p>
+        <p class="footer-sub">Deep Learning × NLP</p>
+      </div>
+      <!-- Replace each href="#" with your real link. -->
+      <ul class="footer-links">
+        <li><a href="#">GitHub</a></li>
+        <li><a href="#">LinkedIn</a></li>
+        <li><a href="#">Project documentation</a></li>
+      </ul>
+    </div>
+  </footer>
+
+  <!-- Announces results to screen readers -->
+  <p class="sr-only" id="sr-status" role="status"></p>
+  <!-- Error toast -->
+  <div class="toast-region" id="toast-region" role="alert" aria-atomic="true"></div>
+
+</body>
+</html>
